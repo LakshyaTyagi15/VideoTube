@@ -1,3 +1,4 @@
+
 class APIResponse {
     constructor(stausCode, data, message = "Success") {
         this.stausCode = stausCode;
@@ -6,3 +7,5 @@ class APIResponse {
         this.success = (stausCode < 400);
     }
 }
+
+export { APIResponse }

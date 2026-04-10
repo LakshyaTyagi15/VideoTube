@@ -1,6 +1,5 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { APIError } from '../utils/APIError.js'
-import { use } from 'react';
 import { User } from '../models/user.model.js'
 import { APIResponse } from '../utils/APIResponse.js';
 
@@ -34,7 +33,7 @@ const registerUser = asyncHandler( async (req, res) => {
     }
 
 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or : [{userName}, {email}]
     });
 
@@ -70,7 +69,7 @@ const registerUser = asyncHandler( async (req, res) => {
         "-password -refreshToken"
     )
 
-    if (createUser) {
+    if (!createUser) {
         throw new APIError(500, "Something went wrong while registering the user");
     }
 

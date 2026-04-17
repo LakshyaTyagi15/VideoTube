@@ -1,9 +1,10 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { APIError } from '../utils/APIError.js'
-import { User, User } from '../models/user.model.js'
+import { User } from '../models/user.model.js'
 import { APIResponse } from '../utils/APIResponse.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -150,8 +151,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined,
+            $unset: {
+                refreshToken: 1,
             },
         },
         {
@@ -335,7 +336,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     const channel = await User.aggregate([
         {
             $match: {
-                userName : userName?.toLowerCase();
+                userName: userName?.toLowerCase()
             }
         },
         {
@@ -364,7 +365,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 },
                 isSubscribed: {
                     $cond: {
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"]},
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }
@@ -390,17 +391,17 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     }
 
     return res
-    .status(200)
-    .json(
-        new APIResponse(200, channel[0], "User channel fetch successfully")
-    );
+        .status(200)
+        .json(
+            new APIResponse(200, channel[0], "User channel fetch successfully")
+        );
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                _id: new mongooes.Types.ObjectId(req.user._id)
+                _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
         {
@@ -418,7 +419,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                             as: "owner",
                             pipeline: [
                                 {
-                                    $projects: {
+                                    $project: {
                                         fullName: 1,
                                         userName: 1,
                                         avatar: 1
@@ -440,10 +441,10 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     ])
 
     return res
-    .statue(200)
-    .json(
-        new APIResponse(200, user[0].watchHistory, "Watch History fetch successfully")
-    )
+        .status(200)
+        .json(
+            new APIResponse(200, user[0].watchHistory, "Watch History fetch successfully")
+        )
 });
 
 

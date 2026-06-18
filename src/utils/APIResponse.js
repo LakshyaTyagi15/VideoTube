@@ -1,10 +1,10 @@
 
 class APIResponse {
-    constructor(stausCode, data, message = "Success") {
-        this.stausCode = stausCode;
+    constructor(statusCode, data, message = "Success") {
+        this.statusCode = statusCode;
         this.data = data;
         this.message = message;
-        this.success = (stausCode < 400);
+        this.success = (statusCode < 400);
     }
 }
 

@@ -246,10 +246,12 @@ const getVideoById = asyncHandler(async (req, res) => {
         $inc: { views: 1 }
     });
 
-    // Add video to user's watch history
-    await User.findByIdAndUpdate(req.user?._id, {
-        $addToSet: { watchHistory: videoId }
-    });
+    // Add video to user's watch history (only if logged in)
+    if (req.user) {
+        await User.findByIdAndUpdate(req.user._id, {
+            $addToSet: { watchHistory: videoId }
+        });
+    }
 
     return res
         .status(200)

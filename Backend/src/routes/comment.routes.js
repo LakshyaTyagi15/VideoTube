@@ -5,20 +5,18 @@ import {
     updateComment,
     deleteComment
 } from "../controllers/comment.controllers.js";
-import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { verifyJWT, optionalJWT } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+// Public routes (with optional auth)
+router.route("/:videoId").get(optionalJWT, getVideoComments);
 
-router
-    .route("/:videoId")
-    .get(getVideoComments)
-    .post(addComment);
-
+// Protected routes
+router.route("/:videoId").post(verifyJWT, addComment);
 router
     .route("/c/:commentId")
-    .patch(updateComment)
-    .delete(deleteComment);
+    .patch(verifyJWT, updateComment)
+    .delete(verifyJWT, deleteComment);
 
 export default router;

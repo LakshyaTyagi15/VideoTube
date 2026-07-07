@@ -159,9 +159,77 @@ const deleteTweet = asyncHandler(async (req, res) => {
         .json(new APIResponse(200, {}, "Tweet deleted successfully"));
 });
 
+const getAllTweets = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
+
+    const tweets = await Tweet.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "likeDetails",
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likeDetails" },
+                ownerDetails: { $first: "$ownerDetails" },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likeDetails.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $skip: (parseInt(page) - 1) * parseInt(limit)
+        },
+        {
+            $limit: parseInt(limit)
+        },
+        {
+            $project: {
+                content: 1,
+                ownerDetails: 1,
+                likesCount: 1,
+                createdAt: 1,
+                isLiked: 1,
+            }
+        }
+    ]);
+
+    return res
+        .status(200)
+        .json(new APIResponse(200, tweets, "All tweets fetched successfully"));
+});
+
 export {
     createTweet,
     getUserTweets,
+    getAllTweets,
     updateTweet,
     deleteTweet
 };

@@ -2,20 +2,23 @@ import { Router } from "express";
 import {
     createTweet,
     getUserTweets,
+    getAllTweets,
     updateTweet,
     deleteTweet
 } from "../controllers/tweet.controllers.js";
-import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { verifyJWT, optionalJWT } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+// Public routes (with optional auth for isLiked)
+router.route("/").get(optionalJWT, getAllTweets);
+router.route("/user/:userId").get(optionalJWT, getUserTweets);
 
-router.route("/").post(createTweet);
-router.route("/user/:userId").get(getUserTweets);
+// Protected routes
+router.route("/").post(verifyJWT, createTweet);
 router
     .route("/:tweetId")
-    .patch(updateTweet)
-    .delete(deleteTweet);
+    .patch(verifyJWT, updateTweet)
+    .delete(verifyJWT, deleteTweet);
 
 export default router;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getUserTweets, createTweet } from '../api/tweets';
+import { getAllTweets, createTweet } from '../api/tweets';
 import TweetCard from '../components/TweetCard';
 import Button from '../components/ui/Button';
 import { PageLoader, EmptyState } from '../components/ui/Loader';
@@ -15,13 +15,12 @@ export default function Tweets() {
     const [posting, setPosting] = useState(false);
 
     useEffect(() => {
-        if (user) fetchTweets();
-        else setLoading(false);
-    }, [user]);
+        fetchTweets();
+    }, []);
 
     const fetchTweets = async () => {
         try {
-            const res = await getUserTweets(user._id);
+            const res = await getAllTweets({ page: 1, limit: 50 });
             setTweets(res.data.data || []);
         } catch {
             setTweets([]);
@@ -37,7 +36,7 @@ export default function Tweets() {
         try {
             const res = await createTweet({ content });
             const newTweet = res.data.data;
-            newTweet.owner = { _id: user._id, userName: user.userName, fullName: user.fullName, avatar: user.avatar };
+            newTweet.ownerDetails = { _id: user._id, userName: user.userName, fullName: user.fullName, avatar: user.avatar };
             setTweets([newTweet, ...tweets]);
             setContent('');
             toast.success('Tweet posted!');

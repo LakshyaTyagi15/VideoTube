@@ -1,5 +1,8 @@
 import api from './axios';
 
+export const getAllTweets = (params) =>
+    api.get('/tweets', { params });
+
 export const createTweet = (data) =>
     api.post('/tweets', data);
 

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getCurrentUser, loginUser as loginApi, logoutUser as logoutApi } from '../api/auth';
+import { setAuthToken } from '../api/axios';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
             setUser(res.data.data);
         } catch {
             setUser(null);
+            setAuthToken(null);
         } finally {
             setLoading(false);
         }
@@ -24,12 +26,18 @@ export function AuthProvider({ children }) {
 
     const login = async (credentials) => {
         const res = await loginApi(credentials);
-        setUser(res.data.data.user);
+        const { user: loggedInUser, accessToken } = res.data.data;
+        // Store token in axios headers as fallback for when cookies don't work
+        if (accessToken) {
+            setAuthToken(accessToken);
+        }
+        setUser(loggedInUser);
         return res.data;
     };
 
     const logout = async () => {
         await logoutApi();
+        setAuthToken(null);
         setUser(null);
     };
 

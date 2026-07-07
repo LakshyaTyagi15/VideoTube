@@ -9,12 +9,13 @@ import toast from 'react-hot-toast';
 
 export default function TweetCard({ tweet, onDelete, onUpdate }) {
     const { user } = useAuth();
+    const tweetOwner = tweet.ownerDetails || tweet.owner;
     const [isLiked, setIsLiked] = useState(tweet.isLiked || false);
     const [likesCount, setLikesCount] = useState(tweet.likesCount || 0);
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(tweet.content);
 
-    const isOwner = user?._id === tweet.owner?._id;
+    const isOwner = user?._id === tweetOwner?._id;
 
     const handleLike = async () => {
         try {
@@ -51,19 +52,19 @@ export default function TweetCard({ tweet, onDelete, onUpdate }) {
     return (
         <div className="bg-bg-card border border-border-primary rounded-xl p-4 hover:border-border-secondary transition-colors">
             <div className="flex gap-3">
-                <Link to={`/channel/${tweet.owner?.userName}`} className="flex-shrink-0">
+                <Link to={`/channel/${tweetOwner?.userName}`} className="flex-shrink-0">
                     <img
-                        src={tweet.owner?.avatar}
-                        alt={tweet.owner?.fullName}
+                        src={tweetOwner?.avatar}
+                        alt={tweetOwner?.fullName}
                         className="w-10 h-10 rounded-full object-cover"
                     />
                 </Link>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                        <Link to={`/channel/${tweet.owner?.userName}`} className="font-medium text-sm hover:text-accent transition-colors">
-                            {tweet.owner?.fullName}
+                        <Link to={`/channel/${tweetOwner?.userName}`} className="font-medium text-sm hover:text-accent transition-colors">
+                            {tweetOwner?.fullName}
                         </Link>
-                        <span className="text-xs text-text-muted">@{tweet.owner?.userName}</span>
+                        <span className="text-xs text-text-muted">@{tweetOwner?.userName}</span>
                         <span className="text-xs text-text-muted">·</span>
                         <span className="text-xs text-text-muted">
                             {tweet.createdAt && formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true })}

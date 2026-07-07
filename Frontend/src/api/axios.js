@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
+
 const api = axios.create({
-    baseURL: '/api/v1',
+    baseURL,
     withCredentials: true,
 });
 
@@ -12,7 +14,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
-                await axios.post('/api/v1/users/refresh-token', {}, { withCredentials: true });
+                await axios.post(`${baseURL}/users/refresh-token`, {}, { withCredentials: true });
                 return api(originalRequest);
             } catch {
                 const isAuthCheck = originalRequest.url?.includes('/users/current-user');

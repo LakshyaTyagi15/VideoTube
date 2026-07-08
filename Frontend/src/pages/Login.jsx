@@ -28,7 +28,12 @@ export default function Login() {
         setSubmitting(true);
         setErrors({});
         try {
-            await login(formData);
+            // Detect if input is email or username and send the correct field
+            const input = formData.email.trim();
+            const credentials = input.includes('@')
+                ? { email: input, password: formData.password }
+                : { userName: input, password: formData.password };
+            await login(credentials);
             toast.success('Welcome back!');
             navigate('/');
         } catch (err) {

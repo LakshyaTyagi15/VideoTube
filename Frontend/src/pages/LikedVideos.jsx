@@ -16,7 +16,12 @@ export default function LikedVideos() {
         try {
             const res = await getLikedVideos();
             const likedList = res.data.data || [];
-            setVideos(likedList.map(item => item.video).filter(Boolean));
+            // Backend returns 'likedVideo' with 'ownerDetails' — map to VideoCard's expected shape
+            setVideos(likedList.map(item => {
+                const v = item.likedVideo;
+                if (!v) return null;
+                return { ...v, owner: v.ownerDetails || v.owner };
+            }).filter(Boolean));
         } catch {
             setVideos([]);
         } finally {

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { HiOutlineSearch, HiOutlineVideoCamera, HiOutlineBell } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineVideoCamera, HiOutlineBell, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 import { RiMenu3Line } from 'react-icons/ri';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Navbar({ onToggleSidebar }) {
     const { user, isAuthenticated, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
@@ -69,6 +71,20 @@ export default function Navbar({ onToggleSidebar }) {
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
+                    {/* Theme toggle */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-lg hover:bg-bg-hover transition-colors"
+                        id="theme-toggle"
+                        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {theme === 'dark' ? (
+                            <HiOutlineSun className="w-5 h-5 text-yellow-400" />
+                        ) : (
+                            <HiOutlineMoon className="w-5 h-5 text-indigo-500" />
+                        )}
+                    </button>
                     {isAuthenticated ? (
                         <>
                             <Link to="/dashboard" className="p-2 rounded-lg hover:bg-bg-hover transition-colors hidden sm:flex" id="upload-btn">

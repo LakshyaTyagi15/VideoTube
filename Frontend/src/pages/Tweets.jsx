@@ -51,7 +51,6 @@ export default function Tweets() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-xl font-semibold mb-6">Tweets</h1>
 
             {isAuthenticated && (
                 <form onSubmit={handlePost} className="mb-6">

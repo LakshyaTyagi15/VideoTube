@@ -65,6 +65,41 @@ export default function Dashboard() {
         }
     };
 
+    const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska', 'video/mpeg', 'video/3gpp', 'video/3gpp2', 'video/ogg', 'video/x-msvideo'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    const handleVideoFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!allowedVideoTypes.includes(file.type)) {
+            toast.error('Invalid video format. Supported: MP4, WebM, MOV, MKV, 3GP');
+            e.target.value = '';
+            return;
+        }
+        if (file.size > 100 * 1024 * 1024) {
+            toast.error('Video file must be under 100MB');
+            e.target.value = '';
+            return;
+        }
+        setVideoFile(file);
+    };
+
+    const handleThumbnailChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!allowedImageTypes.includes(file.type)) {
+            toast.error('Please select a valid image (JPG, PNG, GIF, or WebP)');
+            e.target.value = '';
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Thumbnail must be under 10MB');
+            e.target.value = '';
+            return;
+        }
+        setThumbnail(file);
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!uploadData.title || !videoFile || !thumbnail) {
@@ -204,11 +239,12 @@ export default function Dashboard() {
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-text-secondary">Video File *</label>
-                        <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} className="w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-bg-tertiary file:text-text-primary hover:file:bg-bg-hover" id="upload-video-file" />
+                        <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/3gpp,.mp4,.webm,.mov,.mkv,.3gp" onChange={handleVideoFileChange} className="w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-bg-tertiary file:text-text-primary hover:file:bg-bg-hover" id="upload-video-file" />
+                        {videoFile && <p className="text-xs text-text-muted">{videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)} MB)</p>}
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-sm font-medium text-text-secondary">Thumbnail *</label>
-                        <input type="file" accept="image/*" onChange={(e) => setThumbnail(e.target.files[0])} className="w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-bg-tertiary file:text-text-primary hover:file:bg-bg-hover" id="upload-thumbnail" />
+                        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" onChange={handleThumbnailChange} className="w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-bg-tertiary file:text-text-primary hover:file:bg-bg-hover" id="upload-thumbnail" />
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="secondary" type="button" onClick={() => setShowUpload(false)}>Cancel</Button>

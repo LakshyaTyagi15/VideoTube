@@ -42,6 +42,24 @@ app.use('/api/v1/dashboard', dashboardRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
+    // Handle multer errors (file upload validation)
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+            success: false,
+            statusCode: 400,
+            message: "File too large. Maximum allowed size is 100MB.",
+            errors: [],
+        });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({
+            success: false,
+            statusCode: 400,
+            message: "Unexpected file field.",
+            errors: [],
+        });
+    }
+
     const statusCode = err.statusCode || 500;
     const message = err.message || "Something went wrong";
 

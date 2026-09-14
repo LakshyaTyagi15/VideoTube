@@ -15,9 +15,18 @@ export default function Register() {
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
     const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        if (!allowedImageTypes.includes(file.type)) {
+            toast.error('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+            e.target.value = '';
+            return;
+        }
+
         if (type === 'avatar') {
             setAvatar(file);
             setAvatarPreview(URL.createObjectURL(file));

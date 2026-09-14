@@ -1,0 +1,568 @@
+VIDEOTUBE - PROJECT DOCUMENTATION
+=================================
+
+SCOPE
+-----
+This is a code-based reference for the current repository. It documents what is
+implemented. Environment secret values are deliberately omitted.
+
+1. PROJECT SUMMARY
+------------------
+VideoTube is a full-stack video-sharing and social-media application. It combines
+video publishing/playback with tweet-like text posts.
+
+Repository structure:
+- Backend: Express API, MongoDB models, media upload integration.
+- Frontend: React/Vite browser single-page application.
+- README.md: concise project overview.
+- project.txt: this detailed reference.
+
+Implemented user features:
+- Account registration with required avatar and optional cover image.
+- Login by email or username; JWT access/refresh session support.
+- Video upload, search, playback, likes, comments, views, publishing toggle.
+- Automatic watch history for signed-in viewers.
+- Channel profile and subscription toggling.
+- Tweet creation, likes, edit and deletion by owner.
+- Playlist API plus frontend creation/listing/deletion.
+- Creator dashboard with aggregate statistics and video management.
+
+There is no root package manifest, Docker configuration, CI workflow, or
+automated test suite. Backend and Frontend are independent npm projects.
+
+2. STACK AND USAGE
+------------------
+Layer                    Technology                            Purpose
+-----------------------  ------------------------------------  ----------------------------------------------
+UI framework             React 19 and ReactDOM 19              Components, hooks, Context
+Build/dev server         Vite 8, React Vite plugin             Client development and bundling
+Routing                  React Router DOM 7                   Browser routes/navigation
+CSS                      Tailwind CSS 4                       Dark responsive interface
+HTTP client              Axios                                API calls, cookies, auth refresh retry
+UI helpers               react-hot-toast, react-icons          Toast messages and icons
+Date display             date-fns                             Relative time labels
+Server                   Node.js, Express 5                   REST API and middleware
+Database                 MongoDB, Mongoose 9                  Collections, schemas, aggregation
+Pagination               mongoose-aggregate-paginate-v2       Video/comment aggregate pagination
+Auth                     jsonwebtoken, bcrypt                 JWTs and password hashes
+File uploads             Multer                               Multipart temporary storage
+Media hosting            Cloudinary                           Video/image storage and deletion
+Server helpers           dotenv, cors, cookie-parser          Config, CORS, parsed cookies
+Development quality      nodemon, Prettier, ESLint            Restarting, formatting, linting
+Frontend deployment      Vercel rewrite                       SPA deep-link handling
+
+The project uses ES-module JavaScript. TypeScript is not used.
+
+3. ARCHITECTURE AND DATA FLOW
+-----------------------------
+Browser
+  -> React page
+  -> API service module
+  -> Axios base URL: VITE_API_URL or /api/v1
+  -> Vite proxy in development: /api to http://localhost:8000
+  -> Express routes/controllers
+  -> MongoDB database videotube and Cloudinary media API
+
+Express receives a request, applies CORS/body/cookie middleware, optionally
+validates JWT with auth middleware, parses uploaded files with Multer where
+required, invokes the controller, and returns a standard JSON envelope.
+
+Media flow:
+1. A multipart request is received.
+2. Multer places files in Backend/public/temp.
+3. Controller calls Cloudinary upload.
+4. Cloudinary URLs and video duration are saved in MongoDB.
+5. Local temporary file is removed.
+
+Authentication flow:
+1. Login signs access and refresh JWTs and stores current refresh token in User.
+2. Backend sets HTTP-only accessToken and refreshToken cookies and returns the
+   sanitized user and both token strings.
+3. AuthContext puts access token in Axios Authorization header as a fallback.
+4. verifyJWT accepts accessToken cookie or Authorization Bearer token, then sets
+   req.user to the user without password/refreshToken.
+5. Axios retries one 401 response by calling /users/refresh-token. Failure clears
+   the in-memory header and redirects to /login, except while on auth pages or
+   checking current user.
+6. Public data endpoints use optionalJWT when isLiked/isSubscribed needs a
+   signed-in viewer; anonymous access remains available.
+
+4. CONFIGURATION AND COMMANDS
+-----------------------------
+Backend/.env is ignored by Git. It should contain:
+- PORT: API port; code default is 8000.
+- MONGODB_URI: MongoDB base URI; code appends /videotube.
+- COR_ORIGIN: allowed frontend CORS origin. This spelling is exact in code.
+- ACCESS_TOKEN_SECRET, ACCESS_TOKEN_EXPIRY.
+- REFRESH_TOKEN_SECRET, REFRESH_TOKEN_EXPIRY.
+- CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+- NODE_ENV: optional, selects production cookie settings.
+
+The backend README refers to .env.example but it is not in the tracked project.
+Create a secret-free template before deployment/sharing.
+
+Backend commands:
+  cd Backend
+  npm install
+  npm run dev
+  npm start
+
+Frontend commands:
+  cd Frontend
+  npm install
+  npm run dev
+  npm run lint
+  npm run build
+  npm run preview
+
+Frontend configuration:
+- vite.config.js enables React and Tailwind.
+- Vite proxies /api to http://localhost:8000 during development.
+- VITE_API_URL overrides default frontend API URL /api/v1.
+- vercel.json rewrites every route to /index.html for client-side routing.
+- dist is generated Vite output and is Git-ignored.
+
+5. BACKEND STRUCTURE
+--------------------
+
+5.1 Server, middleware, and utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+File                                      Responsibility
+----------------------------------------  ----------------------------------------------------
+Backend/src/index.js                      Loads environment, connects database, starts app
+Backend/src/app.js                        Express setup, route mounts, global error handler
+Backend/src/constants.js                  Exports database name videotube
+Backend/src/db/index.js                   Opens Mongoose connection
+Backend/src/middlewares/auth.middlewares  verifyJWT and optionalJWT
+Backend/src/middlewares/multer.middlewares Disk upload destination public/temp
+Backend/src/utils/APIResponse.js          Standard success response class
+Backend/src/utils/APIError.js             Error class with status and errors
+Backend/src/utils/asyncHandler.js         Async error forwarding wrapper
+Backend/src/utils/cloudinary.js           Cloudinary configuration, upload, deletion
+
+Express setup:
+- CORS allows COR_ORIGIN, credentials, GET/POST/PUT/PATCH/DELETE/OPTIONS, and
+  Content-Type/Authorization headers.
+- JSON and URL-encoded body sizes are limited to 16 KB.
+- public is exposed as a static directory; cookie-parser is installed.
+- Global error shape:
+  { success: false, statusCode, message, errors, stack? }
+  The stack is provided only in development.
+- Success shape:
+  { statusCode, data, message, success: true }.
+
+5.2 Database models
+~~~~~~~~~~~~~~~~~~~
+All schemas use createdAt and updatedAt timestamps.
+
+Collection/model          Data fields
+------------------------  ---------------------------------------------------------------
+users / User              userName unique/lowercase/indexed; email unique/lowercase;
+                          fullName indexed; required avatar URL; coverImage URL;
+                          watchHistory Video ids; bcrypt password; refreshToken.
+videos / Video            videoFile URL; thumbnail URL; title; description; duration
+                          seconds; views default 0; isPublished; owner User id.
+comments / Comment        content; video Video id; owner User id.
+tweets / Tweet            content; owner User id.
+likes / Like              video, comment, or tweet id; likedBy User id.
+playlists / playlist      name; description; video array of Video ids; owner User id.
+subscriptions /           subscriber User id; channel User id.
+Subscription
+
+User methods compare password and create access/refresh JWTs. Video and Comment
+models add aggregate pagination.
+
+Relationships:
+- User owns Videos, Tweets, Comments, Playlists.
+- Video owns Comments.
+- Like maps one User to a Video, Comment, or Tweet.
+- User watchHistory stores Video ids.
+- Playlist holds multiple Video ids.
+- Subscription maps follower User to channel User.
+
+5.3 Auth and media details
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Registration accepts multipart fullName, email, userName, password, required
+avatar, optional coverImage. Both media files upload to Cloudinary before user
+creation. Mongoose pre-save hashes password through bcrypt.
+
+Login accepts email or userName plus password. Cookies are HTTP-only. In
+production they are secure with SameSite None; otherwise they are non-secure
+with SameSite Lax. Refresh checks its JWT and confirms it equals the refresh
+token stored in the user document before rotating both tokens. Logout unsets
+stored token and clears cookies.
+
+Cloudinary upload uses automatic resource detection and deletes local temporary
+file afterwards. Cloudinary delete defaults to images; video deletion uses video
+resource type.
+
+6. API REFERENCE
+----------------
+Base path: /api/v1
+Public means no login. Optional means anonymous access is valid but signed-in
+viewer state enriches returned information. Auth means a JWT is required.
+
+Health:
+GET /healthcheck, public
+  Data is { status: "ok" }.
+
+Users and auth:
+POST /users/register, public multipart
+  Fields: fullName, email, userName, password, avatar required, coverImage
+  optional. Creates account.
+
+POST /users/login, public
+  JSON: email or userName, plus password. Sets cookies; returns user,
+  accessToken, refreshToken.
+
+POST /users/logout, auth
+  Revokes stored refresh token and clears cookies.
+
+POST /users/refresh-token, refresh token required
+  Reads cookie or body refreshToken, rotates both tokens.
+
+POST /users/change-password, auth
+  JSON oldPassword and newPassword.
+
+GET /users/current-user, auth
+  Returns sanitized authenticated user.
+
+PATCH /users/update-details, auth
+  JSON fullName and email.
+
+PATCH /users/avatar, auth multipart
+  File field avatar. Replaces avatar.
+
+PATCH /users/cover-image, auth multipart
+  File field coverImage. Replaces cover image.
+
+GET /users/c/:userName, optional
+  Returns channel identity/media, subscribersCount,
+  channelsSubscribedToCount, isSubscribed.
+
+GET /users/history, auth
+  Returns watched videos enriched with basic owner fields.
+
+Videos:
+GET /videos, optional
+  Query: page default 1, limit default 10, query, sortBy default createdAt,
+  sortType default desc, userId. Searches title/description case-insensitively.
+  Returns aggregate-paginate data such as docs, totalDocs, totalPages, joined
+  owner details. Only published videos are returned.
+
+POST /videos, auth multipart
+  Fields title, description, required videoFile, required thumbnail. Uploads to
+  Cloudinary and publishes new video.
+
+GET /videos/:videoId, optional
+  Returns video, owner/channel information, likesCount, isLiked, isSubscribed.
+  Increments views. Authenticated viewer receives the video in watchHistory.
+
+PATCH /videos/:videoId, auth
+  Requires title and description; optional multipart thumbnail. Owner only.
+
+DELETE /videos/:videoId, auth
+  Owner only. Removes Cloudinary video/thumbnail, document, related likes and
+  comments.
+
+PATCH /videos/toggle/publish/:videoId, auth
+  Owner only. Toggles isPublished.
+
+Comments:
+GET /comments/:videoId, optional
+  Query page default 1, limit default 10. Paginated result includes owner,
+  likesCount, isLiked.
+
+POST /comments/:videoId, auth
+  JSON content. Creates comment.
+
+PATCH /comments/c/:commentId, auth
+  JSON content. Comment owner only.
+
+DELETE /comments/c/:commentId, auth
+  Comment owner only. Deletes related likes.
+
+Tweets:
+GET /tweets, optional
+  Query page default 1, limit default 20. Returns array, not paging metadata;
+  tweet contains ownerDetails, likesCount, isLiked.
+
+POST /tweets, auth
+  JSON content. Creates tweet.
+
+GET /tweets/user/:userId, optional
+  All enriched tweets for selected user, newest first.
+
+PATCH /tweets/:tweetId, auth
+  JSON content. Tweet owner only.
+
+DELETE /tweets/:tweetId, auth
+  Tweet owner only; deletes likes.
+
+Likes:
+POST /likes/toggle/v/:videoId, auth
+POST /likes/toggle/c/:commentId, auth
+POST /likes/toggle/t/:tweetId, auth
+  Toggles a like and returns isLiked boolean.
+
+GET /likes/videos, auth
+  Returns liked records, newest like first; each has likedVideo and ownerDetails.
+
+Playlists:
+POST /playlists, auth
+  JSON name and description.
+
+GET /playlists/user/:userId, auth
+  Summary fields: name, description, totalVideos, totalViews,
+  firstVideoThumbnail, updatedAt.
+
+GET /playlists/:playlistId, auth
+  Detail including published videos/owners, playlist owner, total counts.
+
+PATCH /playlists/:playlistId, auth
+  JSON name and description. Owner only.
+
+DELETE /playlists/:playlistId, auth
+  Owner only.
+
+PATCH /playlists/add/:videoId/:playlistId, auth
+  Owner only; uses addToSet.
+
+PATCH /playlists/remove/:videoId/:playlistId, auth
+  Owner only; uses pull.
+
+Subscriptions:
+POST /subscriptions/c/:channelId, auth
+  Toggles subscription, rejects self-subscription, returns subscribed boolean.
+
+GET /subscriptions/c/:channelId, auth
+  Returns subscriber data.
+
+GET /subscriptions/u/:subscriberId, auth
+  Returns subscribed channels with latestVideo aggregation.
+
+Dashboard:
+GET /dashboard/stats, auth
+  totalSubscribers, totalLikes, totalViews, totalVideos.
+
+GET /dashboard/videos, auth
+  Every current-user video including drafts, newest first, likesCount included.
+
+7. FRONTEND DESIGN
+------------------
+
+7.1 Application shell
+~~~~~~~~~~~~~~~~~~~~~
+src/main.jsx mounts App under React StrictMode.
+src/App.jsx creates BrowserRouter, AuthProvider, shared Layout, route tree and
+dark react-hot-toast Toaster.
+
+src/index.css imports Tailwind and defines dark backgrounds, purple accent
+#ae7aff, text/border colors, Inter font, custom scrollbars, glass utility and
+line-clamp utilities.
+
+AuthContext runs getCurrentUser once at startup and exposes user, loading,
+isAuthenticated, login, logout and refetchUser. Login saves the returned access
+token in the Axios fallback header; logout clears it.
+
+Layout has a fixed Navbar and responsive Sidebar. Navbar supplies logo, desktop
+search, Dashboard link, non-functional notification icon, profile menu and
+logout. Sidebar filters protected links when no user is signed in.
+
+7.2 Routes
+~~~~~~~~~~
+Path                    Component             Purpose
+----------------------  --------------------  -------------------------------------------
+/                       Home                  Video feed, search, pagination
+/login                  Login                 Sign-in by email/username
+/register               Register              Account/avatar/cover creation
+/video/:videoId         VideoPlayer           Watch, like, subscribe, comments
+/channel/:userName      Channel               Profile and three content tabs
+/tweets                 Tweets                Feed and authenticated composer
+/liked-videos           LikedVideos           Protected liked-video grid
+/history                History               Protected watch history
+/playlists              Playlists             Protected playlist create/list/delete
+/dashboard              Dashboard             Protected channel stats/upload/manage
+
+ProtectedRoute displays PageLoader during initial session check and redirects
+unauthenticated visitors to /login.
+
+7.3 Page details
+~~~~~~~~~~~~~~~~
+Home reads the query search parameter supplied by Navbar, requests 12 video
+cards per page, uses totalPages for previous/next controls, and shows skeleton
+or empty states.
+
+Login decides whether input is email or userName by testing for @. Register
+checks required fields, a six-character minimum password, required avatar,
+locally previews avatar, then sends FormData. Successful registration goes to
+login; successful login goes home.
+
+VideoPlayer requests a video and 50 comments when its video id changes. Native
+video uses Cloudinary URL and thumbnail poster. It supports video like,
+subscribe, comment creation, owner-only comment deletion. Related videos on
+desktop are only a placeholder.
+
+Channel requests profile by userName. It lazy-loads Videos, Tweets or Playlists
+when selected. Subscribe button is hidden when channel belongs to current user.
+
+Tweets loads 50 feed items. Signed-in users can compose text with a displayed
+500-character counter. TweetCard supports likes and owner-only inline
+edit/delete.
+
+LikedVideos maps likedVideo.ownerDetails to the owner format expected by
+VideoCard. History receives owner data directly. Both render card grids.
+
+Playlists lists current user's playlists and offers modal create/delete.
+Dashboard requests stats and videos in parallel; it toggles publish state,
+deletes videos, and uploads title/description/videoFile/thumbnail FormData.
+
+7.4 Frontend file inventory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top level:
+- Frontend/package.json: client dependencies and Vite scripts.
+- Frontend/package-lock.json: locked dependency tree.
+- Frontend/README.md: frontend usage notes.
+- Frontend/index.html: document/root/font/metadata shell.
+- Frontend/vite.config.js: plugins and API proxy.
+- Frontend/vercel.json: SPA rewrite configuration.
+- Frontend/eslint.config.js: lint config.
+- Frontend/.gitignore: local/generated exclusions.
+- Frontend/public/favicon.svg, icons.svg: public assets.
+- Frontend/dist: generated non-tracked build.
+
+Source:
+- src/main.jsx: React entry.
+- src/App.jsx: route tree, providers, Toaster.
+- src/index.css: theme/global styling.
+- src/context/AuthContext.jsx: client session state.
+- src/api/axios.js: Axios and refresh interceptor.
+- src/api/auth.js: user/auth/history calls.
+- src/api/videos.js: feed, CRUD, upload, publish calls.
+- src/api/comments.js: comment calls.
+- src/api/tweets.js: tweet calls.
+- src/api/likes.js: likes calls.
+- src/api/playlists.js: playlist calls.
+- src/api/subscriptions.js: subscription calls.
+- src/api/dashboard.js: dashboard calls.
+- src/pages/Home.jsx: discover/search.
+- src/pages/Login.jsx: sign in.
+- src/pages/Register.jsx: registration.
+- src/pages/VideoPlayer.jsx: watch page.
+- src/pages/Channel.jsx: channel profile/tabs.
+- src/pages/Tweets.jsx: tweets feed.
+- src/pages/LikedVideos.jsx: liked videos.
+- src/pages/History.jsx: history.
+- src/pages/Playlists.jsx: playlist user interface.
+- src/pages/Dashboard.jsx: creator interface.
+- src/components/VideoCard.jsx: video card.
+- src/components/TweetCard.jsx: tweet card/actions.
+- src/components/ProtectedRoute.jsx: route guard.
+- src/components/Layout/Layout.jsx: visual shell.
+- src/components/Layout/Navbar.jsx: header/search/profile controls.
+- src/components/Layout/Sidebar.jsx: responsive links.
+- src/components/ui/Button.jsx: reusable buttons.
+- src/components/ui/Input.jsx: reusable labelled input.
+- src/components/ui/Loader.jsx: loaders, skeleton, empty state.
+- src/components/ui/Modal.jsx: overlay dialog.
+- src/assets/hero.png, react.svg, vite.svg: unused component assets. index.html
+  links /vite.svg although public only contains favicon.svg and icons.svg.
+
+8. BACKEND FILE INVENTORY
+-------------------------
+Top level:
+- Backend/package.json: dependencies and dev/start scripts.
+- Backend/package-lock.json: locked dependencies.
+- Backend/Readme.md: backend setup overview.
+- Backend/.env: ignored configuration secrets.
+- Backend/.gitignore: Node/log/env/build exclusions.
+- Backend/.prettierrc: formatting settings; sime is a typo/no-op key.
+- Backend/.prettierignore: format exclusions.
+- Backend/public/temp/.gitkeep: retains upload temp folder.
+
+Models:
+- src/models/user.model.js: user, password hook, token methods.
+- src/models/video.model.js: video and aggregate pagination.
+- src/models/comment.model.js: comment and aggregate pagination.
+- src/models/tweet.model.js: tweet.
+- src/models/like.model.js: polymorphic like.
+- src/models/playlist.model.js: playlist/video references.
+- src/models/subscription.model.js: subscription references.
+
+Controllers:
+- src/controllers/user.controllers.js: auth, account, images, channel, history.
+- src/controllers/video.controllers.js: feed/upload/watch/edit/delete/publish.
+- src/controllers/comment.controllers.js: comment pagination and CRUD.
+- src/controllers/tweet.controllers.js: tweet feed and CRUD.
+- src/controllers/like.controllers.js: toggles and liked videos.
+- src/controllers/playlist.controllers.js: CRUD, membership, aggregation.
+- src/controllers/subscription.controllers.js: follow/list aggregation.
+- src/controllers/dashboard.controllers.js: channel totals/videos.
+- src/controllers/healthcheck.controllers.js: health response.
+
+Routes:
+- src/routes/user.routes.js: /users and upload fields.
+- src/routes/video.routes.js: /videos and upload fields.
+- src/routes/comment.routes.js: /comments.
+- src/routes/tweet.routes.js: /tweets.
+- src/routes/like.routes.js: /likes.
+- src/routes/playlist.routes.js: /playlists.
+- src/routes/subscription.routes.js: /subscriptions.
+- src/routes/dashboard.routes.js: /dashboard.
+- src/routes/healthcheck.routes.js: /healthcheck.
+
+9. CURRENT GAPS AND MAINTENANCE NOTES
+-------------------------------------
+These items are observations of current code.
+
+- No test files or automated test scripts exist.
+- API client functions are present but no screen calls them for account detail/
+  password/avatar/cover updates, comment update/like, playlist detail/update/
+  add/remove, video update, or subscription-list views.
+- Playlist list API projects totalVideos and updatedAt. Playlists page and
+  Channel cards read playlist.video and playlist.createdAt, so cards can show
+  zero videos and no date.
+- GET /videos always filters isPublished true, even with userId. Drafts appear
+  in Dashboard only.
+- Video schema uses require instead of Mongoose required for videoFile,
+  thumbnail, title, description, duration. Normal controller validation covers
+  upload flow but model-level required validation is not active for those fields.
+- Like and Subscription lack compound unique indexes. Toggle controllers normally
+  prevent duplicates, but database constraints are safer under concurrency.
+- Like endpoints only validate ObjectId syntax and do not check target document
+  existence before a Like is created.
+- Login and refresh responses expose refreshToken JSON in addition to HTTP-only
+  cookies. Avoid response logging; a stricter deployment should be cookie-only.
+- Axios stores access token in memory rather than localStorage. Reloads depend on
+  cookies/current-user check, avoiding one common token-XSS exposure.
+- Multer calculates a suffix but saves original filename; same-name temporary
+  uploads can collide.
+- Cloudinary delete derives public id from URL basename. Saving actual Cloudinary
+  public id would be safer for folders/transformed URLs.
+- Dashboard lacks video edit UI although update API exists. Description is not
+  visually required but backend requires it.
+- Related video and notification experiences are placeholders.
+- Frontend/dist must be generated via npm run build, not manually edited.
+
+10. MANUAL VERIFICATION
+-----------------------
+Current verification status (checked 2026-07-14):
+- Frontend npm run build succeeds.
+- Frontend npm run lint currently fails with 16 errors and 5 warnings. The
+  reported issues are existing unused icon imports and React Hooks lint rules
+  concerning functions referenced before declaration, missing dependencies,
+  synchronous state updates in an effect, and a mixed component/helper export.
+  This documentation change did not modify frontend source code.
+
+1. Configure MongoDB and Cloudinary, run Backend npm run dev.
+2. Request http://localhost:8000/api/v1/healthcheck and expect status ok.
+3. Run Frontend npm run dev; register with avatar and login by both email and
+   username.
+4. Upload video, verify feed/search/player/view/like/comment/subscription,
+   history, liked videos and channel UI.
+5. Create, edit, like and delete a tweet as owner.
+6. Create/delete playlists. Test add/remove/detail endpoints with an API client
+   until UI support exists.
+7. Run npm run lint and npm run build before deployment.
+
+End of documentation.

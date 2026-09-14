@@ -4,20 +4,47 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import VideoPlayer from './pages/VideoPlayer';
-import Channel from './pages/Channel';
-import Tweets from './pages/Tweets';
-import LikedVideos from './pages/LikedVideos';
-import History from './pages/History';
-import Playlists from './pages/Playlists';
-import Dashboard from './pages/Dashboard';
+import { lazy, Suspense } from 'react';
+import { PageLoader } from './components/ui/Loader';
 
+// Lazy load all pages for faster initial load
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const VideoPlayer = lazy(() => import('./pages/VideoPlayer'));
+const Channel = lazy(() => import('./pages/Channel'));
+const Tweets = lazy(() => import('./pages/Tweets'));
+const LikedVideos = lazy(() => import('./pages/LikedVideos'));
+const History = lazy(() => import('./pages/History'));
+const Playlists = lazy(() => import('./pages/Playlists'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+<<<<<<< HEAD
 function AppToaster() {
     const { theme } = useTheme();
     return (
+=======
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+              <Route path="video/:videoId" element={<VideoPlayer />} />
+              <Route path="channel/:userName" element={<Channel />} />
+              <Route path="tweets" element={<Tweets />} />
+              <Route path="liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
+              <Route path="history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+              <Route path="playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            </Route>
+          </Routes>
+        </Suspense>
+>>>>>>> 0fee42b (Fixed bugs regarding file upload)
         <Toaster
             position="bottom-right"
             toastOptions={{

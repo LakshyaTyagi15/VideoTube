@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
             setUser(res.data.data);
         } catch {
             setUser(null);
-            setAuthToken(null);
+            setAuthToken(null); 
         } finally {
             setLoading(false);
         }

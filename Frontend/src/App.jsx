@@ -19,32 +19,9 @@ const History = lazy(() => import('./pages/History'));
 const Playlists = lazy(() => import('./pages/Playlists'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
-<<<<<<< HEAD
 function AppToaster() {
     const { theme } = useTheme();
     return (
-=======
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="login" element={<Login />} />
-              <Route path="register" element={<Register />} />
-              <Route path="video/:videoId" element={<VideoPlayer />} />
-              <Route path="channel/:userName" element={<Channel />} />
-              <Route path="tweets" element={<Tweets />} />
-              <Route path="liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
-              <Route path="history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            </Route>
-          </Routes>
-        </Suspense>
->>>>>>> 0fee42b (Fixed bugs regarding file upload)
         <Toaster
             position="bottom-right"
             toastOptions={{
@@ -65,24 +42,25 @@ export default function App() {
         <BrowserRouter>
             <ThemeProvider>
                 <AuthProvider>
-                    <Routes>
-                        <Route element={<Layout />}>
-                            <Route index element={<Home />} />
-                            <Route path="login" element={<Login />} />
-                            <Route path="register" element={<Register />} />
-                            <Route path="video/:videoId" element={<VideoPlayer />} />
-                            <Route path="channel/:userName" element={<Channel />} />
-                            <Route path="tweets" element={<Tweets />} />
-                            <Route path="liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
-                            <Route path="history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-                            <Route path="playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
-                            <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                        </Route>
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                            <Route element={<Layout />}>
+                                <Route index element={<Home />} />
+                                <Route path="login" element={<Login />} />
+                                <Route path="register" element={<Register />} />
+                                <Route path="video/:videoId" element={<VideoPlayer />} />
+                                <Route path="channel/:userName" element={<Channel />} />
+                                <Route path="tweets" element={<Tweets />} />
+                                <Route path="liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
+                                <Route path="history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                                <Route path="playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+                                <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                            </Route>
+                        </Routes>
+                    </Suspense>
                     <AppToaster />
                 </AuthProvider>
             </ThemeProvider>
         </BrowserRouter>
     );
 }
-

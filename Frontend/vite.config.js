@@ -15,9 +15,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-utils': ['axios', 'date-fns', 'react-hot-toast'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/axios') || id.includes('node_modules/date-fns') || id.includes('node_modules/react-hot-toast')) {
+            return 'vendor-utils';
+          }
         },
       },
     },

@@ -6,6 +6,9 @@ import { HiOutlineClock, HiOutlineTrash } from 'react-icons/hi';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { toast } from 'react-hot-toast';
+import { deleteWatchHistory } from "../api/auth";
+
+await deleteWatchHistory();
 
 export default function History() {
     const [videos, setVideos] = useState([]);

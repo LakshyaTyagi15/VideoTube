@@ -29,3 +29,6 @@ export const getChannelProfile = (userName) =>
 
 export const getWatchHistory = () =>
     api.get('/users/history');
+
+export const deleteWatchHistory = () =>
+    api.delete('/users/history');

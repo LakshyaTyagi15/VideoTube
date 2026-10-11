@@ -32,3 +32,4 @@ export const getWatchHistory = () =>
 
 export const deleteWatchHistory = () =>
     api.delete('/users/history');
+

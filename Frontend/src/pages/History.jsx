@@ -36,8 +36,16 @@ export default function History() {
             setVideos([]);
             setShowDeleteModal(false);
             toast.success("Watch history deleted");
-        } catch {
-            toast.error("Failed to delete watch history");
+        } catch (error) {
+            console.error(
+                "Delete history error:",
+                error.response?.data || error,
+            );
+
+            toast.error(
+                error.response?.data?.message ||
+                    `Failed to delete history (${error.response?.status || "network error"})`,
+            );
         } finally {
             setDeleting(false);
         }

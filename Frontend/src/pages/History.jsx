@@ -8,8 +8,6 @@ import Modal from '../components/ui/Modal';
 import { toast } from 'react-hot-toast';
 import { deleteWatchHistory } from "../api/auth";
 
-await deleteWatchHistory();
-
 export default function History() {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
